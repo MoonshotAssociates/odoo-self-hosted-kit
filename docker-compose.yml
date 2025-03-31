@@ -1,0 +1,113 @@
+networks:
+  odoo-network:
+
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/pg_data
+      o: bind
+  odoo1_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/odoo/odoo1/data
+      o: bind
+  odoo2_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/odoo/odoo2/data
+      o: bind
+  odoo1_config:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/odoo/odoo1/config
+      o: bind
+  odoo2_config:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/odoo/odoo2/config
+      o: bind
+  odoo1_addons:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/odoo/odoo1/extra-addons
+      o: bind
+  odoo2_addons:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/odoo/odoo2/extra-addons
+      o: bind
+
+services:
+  postgres:
+    image: postgres:latest
+    user: root
+    container_name: postgres_db
+    networks: ['odoo-network']
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRESDB}  # Default DB required for initialization
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./odoo-manager.sh:/docker-entrypoint-initdb.d/odoo-manager.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U ${POSTGRES_USER}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "5432:5432"
+
+  odoo1:
+    image: odoo:latest
+    user: root
+    container_name: odoo_instance_1
+    networks: ['odoo-network']
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HOST: postgres
+      USER: ${POSTGRES_USER}
+      PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE: odoo_db1
+    volumes:
+      - odoo1_data:/var/lib/odoo
+      - odoo1_config:/etc/odoo
+      - odoo1_addons:/mnt/extra-addons
+    ports:
+      - "7001:8069"
+    command: ["odoo", "--db_host=postgres_db", "--db_port=5432", "--db_user=root", "--db_password=${POSTGRES_PASSWORD}", "-d", "odoo_db1", "-i", "base"]
+
+  odoo2:
+    image: odoo:latest
+    user: root
+    container_name: odoo_instance_2
+    networks: ['odoo-network']
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HOST: postgres
+      USER: ${POSTGRES_USER}
+      PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE: odoo_db2
+    volumes:
+      - odoo2_data:/var/lib/odoo
+      - odoo2_config:/etc/odoo
+      - odoo2_addons:/mnt/extra-addons
+    ports:
+      - "7002:8069"
+    command: ["odoo", "--db_host=postgres_db", "--db_port=5432", "--db_user=root", "--db_password=${POSTGRES_PASSWORD}", "-d", "odoo_db2", "-i", "base"]
