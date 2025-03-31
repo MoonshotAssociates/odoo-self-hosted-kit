@@ -66,7 +66,7 @@ services:
       retries: 5
       start_period: 10s
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
 
   odoo1:
     image: odoo:latest
@@ -87,8 +87,8 @@ services:
       - odoo1_config:/etc/odoo
       - odoo1_addons:/mnt/extra-addons
     ports:
-      - "7001:8069"
-    command: ["odoo", "--db_host=postgres_db", "--db_port=5432", "--db_user=root", "--db_password=${POSTGRES_PASSWORD}", "-d", "odoo_db1", "-i", "base"]
+      - "0.0.0.0:7001:8069"
+    command: ["odoo", "--db_host=postgres_db", "--db_port=${POSTGRES_PORT}", "--db_user=${POSTGRES_USER}", "--db_password=${POSTGRES_PASSWORD}", "-d", "odoo_db1", "-i", "base", "--without-demo=all"]
 
   odoo2:
     image: odoo:latest
@@ -109,5 +109,5 @@ services:
       - odoo2_config:/etc/odoo
       - odoo2_addons:/mnt/extra-addons
     ports:
-      - "7002:8069"
-    command: ["odoo", "--db_host=postgres_db", "--db_port=5432", "--db_user=root", "--db_password=${POSTGRES_PASSWORD}", "-d", "odoo_db2", "-i", "base"]
+      - "0.0.0.0:7002:8069"
+    command: ["odoo", "--db_host=postgres_db", "--db_port=${POSTGRES_PORT}", "--db_user=${POSTGRES_USER}", "--db_password=${POSTGRES_PASSWORD}", "-d", "odoo_db2", "-i", "base", "--without-demo=all"]
