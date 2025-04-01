@@ -6,8 +6,9 @@ set -e
 ODOO_INSTANCES=(
   "odoo_instance_1:7001:odoo_db1"
   "odoo_instance_2:7002:odoo_db2"
+  "odoo_instance_3:7003:odoo_db3"
   # Add more instances as needed, e.g.:
-  # "odoo_instance_3:7003:odoo_db3"
+  # "odoo_instance_4:7004:odoo_db4"
 )
 
 # PostgreSQL container name
