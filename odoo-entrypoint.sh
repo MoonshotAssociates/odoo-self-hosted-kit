@@ -28,7 +28,7 @@ echo "PostgreSQL is up - checking if database $DB_NAME exists"
 if database_exists "$DB_NAME"; then
   echo "Database $DB_NAME already exists, skipping initialization"
   # Start Odoo without initialization parameters
-  exec odoo "$@"
+  exec odoo "$@" -d "$DB_NAME" 
 else
   echo "Database $DB_NAME does not exist, initializing..."
   # Start Odoo with initialization parameters
