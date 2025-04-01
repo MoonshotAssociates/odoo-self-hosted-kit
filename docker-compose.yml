@@ -8,17 +8,29 @@ volumes:
       type: none
       device: /storage/pg_data
       o: bind
+  letsencrypt_storage:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/letsencrypt
+      o: bind
+  letsencrypt_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/letsencrypt/data
+      o: bind
+  nginx_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/nginx_data
+      o: bind      
   odoo1_data:
     driver: local
     driver_opts:
       type: none
       device: /storage/odoo/odoo1/data
-      o: bind
-  odoo2_data:
-    driver: local
-    driver_opts:
-      type: none
-      device: /storage/odoo/odoo2/data
       o: bind
   odoo1_config:
     driver: local
@@ -26,17 +38,23 @@ volumes:
       type: none
       device: /storage/odoo/odoo1/config
       o: bind
-  odoo2_config:
-    driver: local
-    driver_opts:
-      type: none
-      device: /storage/odoo/odoo2/config
-      o: bind
   odoo1_addons:
     driver: local
     driver_opts:
       type: none
       device: /storage/odoo/odoo1/extra-addons
+      o: bind
+  odoo2_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/odoo/odoo2/data
+      o: bind
+  odoo2_config:
+    driver: local
+    driver_opts:
+      type: none
+      device: /storage/odoo/odoo2/config
       o: bind
   odoo2_addons:
     driver: local
@@ -68,10 +86,24 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
 
+  nginx:
+    image: 'jc21/nginx-proxy-manager:latest'
+    user: root
+    restart: unless-stopped
+    networks: ['odoo-network']
+    ports:
+      - 80:80
+      - 81:81
+      - 443:443
+    volumes:
+      - letsencrypt_data:/data
+      - letsencrypt_storage:/etc/letsencrypt
+      - nginx_data:/etc/nginx
+
   odoo1:
     image: odoo:latest
     user: root
-    container_name: odoo_instance_1
+    container_name: ${ODOO1_INSTANCE_NAME}
     networks: ['odoo-network']
     restart: always
     depends_on:
@@ -81,19 +113,19 @@ services:
       HOST: postgres
       USER: ${POSTGRES_USER}
       PASSWORD: ${POSTGRES_PASSWORD}
-      DATABASE: odoo_db1
+      DATABASE: ${ODOO1_DB}
     volumes:
       - odoo1_data:/var/lib/odoo
       - odoo1_config:/etc/odoo
       - odoo1_addons:/mnt/extra-addons
     ports:
-      - "0.0.0.0:7001:8069"
-    command: ["odoo", "--db_host=postgres_db", "--db_port=${POSTGRES_PORT}", "--db_user=${POSTGRES_USER}", "--db_password=${POSTGRES_PASSWORD}", "-d", "odoo_db1", "-i", "base", "--without-demo=all"]
+      - "${ODOO1_PORT}:8069"
+    command: ["odoo", "--db_host=postgres_db", "--db_port=${POSTGRES_PORT}", "--db_user=${POSTGRES_USER}", "--db_password=${POSTGRES_PASSWORD}", "-d", "${ODOO1_DB}", "-i", "base", "--without-demo=all"]
 
   odoo2:
     image: odoo:latest
     user: root
-    container_name: odoo_instance_2
+    container_name: ${ODOO2_INSTANCE_NAME}
     networks: ['odoo-network']
     restart: always
     depends_on:
@@ -103,11 +135,11 @@ services:
       HOST: postgres
       USER: ${POSTGRES_USER}
       PASSWORD: ${POSTGRES_PASSWORD}
-      DATABASE: odoo_db2
+      DATABASE: ${ODOO2_DB}
     volumes:
       - odoo2_data:/var/lib/odoo
       - odoo2_config:/etc/odoo
       - odoo2_addons:/mnt/extra-addons
     ports:
-      - "0.0.0.0:7002:8069"
-    command: ["odoo", "--db_host=postgres_db", "--db_port=${POSTGRES_PORT}", "--db_user=${POSTGRES_USER}", "--db_password=${POSTGRES_PASSWORD}", "-d", "odoo_db2", "-i", "base", "--without-demo=all"]
+      - "${ODOO2_PORT}:8069"
+    command: ["odoo", "--db_host=postgres_db", "--db_port=${POSTGRES_PORT}", "--db_user=${POSTGRES_USER}", "--db_password=${POSTGRES_PASSWORD}", "-d", "${ODOO2_DB}", "-i", "base", "--without-demo=all"]
